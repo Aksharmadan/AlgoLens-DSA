@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.https://algolens-dsa.onrender.com;
 
 export default function SearchPage() {
   const [q, setQ] = useState("");

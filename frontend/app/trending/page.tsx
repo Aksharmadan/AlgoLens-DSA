@@ -7,6 +7,7 @@ type Trend = {
   count: number;
 };
 
+// ✅ MUST start with NEXT_PUBLIC_
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 export default function TrendingPage() {
@@ -20,7 +21,8 @@ export default function TrendingPage() {
       const res = await fetch(`${API_URL}/trending/top?k=5`);
       const data = await res.json();
       setTrends(Array.isArray(data.trends) ? data.trends : []);
-    } catch {
+    } catch (err) {
+      console.error("Fetch trends failed", err);
       setTrends([]);
     } finally {
       setLoading(false);
@@ -30,14 +32,18 @@ export default function TrendingPage() {
   async function addEvent() {
     if (!input.trim()) return;
 
-    await fetch(`${API_URL}/trending/add`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ item: input.trim() }),
-    });
+    try {
+      await fetch(`${API_URL}/trending/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ item: input.trim() }),
+      });
 
-    setInput("");
-    fetchTrends();
+      setInput("");
+      fetchTrends();
+    } catch (err) {
+      console.error("Add event failed", err);
+    }
   }
 
   useEffect(() => {
@@ -47,40 +53,36 @@ export default function TrendingPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-pink-50 px-6 py-20">
+    <main className="min-h-screen px-6 py-20">
       <div className="mx-auto max-w-3xl">
-        <h1 className="text-4xl font-extrabold text-center">🔥 Live Trending</h1>
+        <h1 className="text-4xl font-bold text-center">🔥 Live Trending</h1>
 
-        <div className="mt-10 bg-white p-6 rounded-xl shadow">
-          <div className="flex gap-3">
-            <input
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && addEvent()}
-              className="flex-1 border rounded-lg px-4 py-3"
-              placeholder="Type event"
-            />
-            <button
-              onClick={addEvent}
-              className="px-6 py-3 rounded-lg bg-orange-500 text-white font-semibold"
-            >
-              Add
-            </button>
-          </div>
+        <div className="mt-10 flex gap-3">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addEvent()}
+            className="flex-1 border rounded-xl px-4 py-3"
+            placeholder="Type event (apple)"
+          />
+          <button
+            onClick={addEvent}
+            className="px-6 py-3 rounded-xl bg-orange-500 text-white"
+          >
+            Add
+          </button>
         </div>
 
-        <ul className="mt-8 space-y-4">
+        {loading && <p className="mt-6 text-center">Loading…</p>}
+
+        <ul className="mt-6 space-y-3">
           {trends.map((t, i) => (
-            <li key={t.item} className="flex justify-between bg-white p-4 rounded shadow">
+            <li key={t.item} className="flex justify-between bg-white p-4 rounded-xl shadow">
               <span>#{i + 1} {t.item}</span>
               <span>{t.count}</span>
             </li>
           ))}
         </ul>
-
-        {!loading && trends.length === 0 && (
-          <p className="text-center mt-6 text-gray-400">No events yet</p>
-        )}
       </div>
     </main>
   );

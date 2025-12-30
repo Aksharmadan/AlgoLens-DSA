@@ -1,43 +1,87 @@
-const express = require("express");
-const router = express.Router();
+"use client";
 
-// 🔥 GLOBAL STATE (do NOT put inside route)
-let events = [];
+import { useEffect, useState } from "react";
 
-// CLEAN old events (60s window)
-function cleanup() {
-  const now = Date.now();
-  events = events.filter(e => now - e.time <= 60_000);
-}
+type Trend = {
+  item: string;
+  count: number;
+};
 
-// ADD EVENT
-router.post("/add", (req, res) => {
-  const { item } = req.body;
-  if (!item) return res.sendStatus(400);
+const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
-  events.push({ item: item.toLowerCase(), time: Date.now() });
-  cleanup();
+export default function TrendingPage() {
+  const [input, setInput] = useState("");
+  const [trends, setTrends] = useState<Trend[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  res.json({ ok: true });
-});
-
-// GET TOP TRENDS
-router.get("/top", (req, res) => {
-  cleanup();
-
-  const k = Number(req.query.k || 5);
-  const freq = {};
-
-  for (const e of events) {
-    freq[e.item] = (freq[e.item] || 0) + 1;
+  async function fetchTrends() {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/trending/top?k=5`);
+      const data = await res.json();
+      setTrends(Array.isArray(data.trends) ? data.trends : []);
+    } catch {
+      setTrends([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  const trends = Object.entries(freq)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, k)
-    .map(([item, count]) => ({ item, count }));
+  async function addEvent() {
+    if (!input.trim()) return;
 
-  res.json({ trends });
-});
+    await fetch(`${API_URL}/trending/add`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ item: input.trim() }),
+    });
 
-module.exports = router;
+    setInput("");
+    fetchTrends();
+  }
+
+  useEffect(() => {
+    fetchTrends();
+    const id = setInterval(fetchTrends, 2000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-pink-50 px-6 py-20">
+      <div className="mx-auto max-w-3xl">
+        <h1 className="text-4xl font-extrabold text-center">🔥 Live Trending</h1>
+
+        <div className="mt-10 bg-white p-6 rounded-xl shadow">
+          <div className="flex gap-3">
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && addEvent()}
+              className="flex-1 border rounded-lg px-4 py-3"
+              placeholder="Type event"
+            />
+            <button
+              onClick={addEvent}
+              className="px-6 py-3 rounded-lg bg-orange-500 text-white font-semibold"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+
+        <ul className="mt-8 space-y-4">
+          {trends.map((t, i) => (
+            <li key={t.item} className="flex justify-between bg-white p-4 rounded shadow">
+              <span>#{i + 1} {t.item}</span>
+              <span>{t.count}</span>
+            </li>
+          ))}
+        </ul>
+
+        {!loading && trends.length === 0 && (
+          <p className="text-center mt-6 text-gray-400">No events yet</p>
+        )}
+      </div>
+    </main>
+  );
+}

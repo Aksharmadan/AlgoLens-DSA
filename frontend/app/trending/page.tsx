@@ -7,40 +7,53 @@ type Trend = {
   count: number;
 };
 
+const API_URL = process.env.https://algolens-dsa.onrender.com;
+
 export default function TrendingPage() {
   const [input, setInput] = useState("");
   const [trends, setTrends] = useState<Trend[]>([]);
   const [loading, setLoading] = useState(false);
 
   async function fetchTrends() {
+    const controller = new AbortController();
     setLoading(true);
+
     try {
-      const res = await fetch("http://localhost:4000/trending/top?k=5");
+      const res = await fetch(
+        `${API_URL}/trending/top?k=5`,
+        { signal: controller.signal }
+      );
       const data = await res.json();
-      setTrends(data.trends || []);
+      setTrends(Array.isArray(data.trends) ? data.trends : []);
     } catch {
       setTrends([]);
     } finally {
       setLoading(false);
     }
+
+    return () => controller.abort();
   }
 
   async function addEvent() {
     if (!input.trim()) return;
 
-    await fetch("http://localhost:4000/trending/add", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ item: input }),
-    });
+    try {
+      await fetch(`${API_URL}/trending/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ item: input.trim() }),
+      });
 
-    setInput("");
-    fetchTrends();
+      setInput("");
+      fetchTrends();
+    } catch {
+      // ignore
+    }
   }
 
   useEffect(() => {
     fetchTrends();
-    const interval = setInterval(fetchTrends, 2000); // LIVE refresh
+    const interval = setInterval(fetchTrends, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -92,7 +105,7 @@ export default function TrendingPage() {
               <li
                 key={t.item}
                 className="flex items-center justify-between rounded-xl
-                  bg-white p-5 shadow animate-pulse"
+                  bg-white p-5 shadow"
               >
                 <div className="flex items-center gap-4">
                   <span className="text-2xl font-bold text-orange-500">

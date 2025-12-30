@@ -7,9 +7,8 @@ type Trend = {
   count: number;
 };
 
-// ✅ MUST start with NEXT_PUBLIC_
+// 🔥 HARD-CODED BACKEND URL (SAFE & WORKING)
 const API_URL = "https://algolens-dsa.onrender.com";
-
 
 export default function TrendingPage() {
   const [input, setInput] = useState("");
@@ -23,7 +22,7 @@ export default function TrendingPage() {
       const data = await res.json();
       setTrends(Array.isArray(data.trends) ? data.trends : []);
     } catch (err) {
-      console.error("Fetch trends failed", err);
+      console.error("fetchTrends failed", err);
       setTrends([]);
     } finally {
       setLoading(false);
@@ -43,47 +42,64 @@ export default function TrendingPage() {
       setInput("");
       fetchTrends();
     } catch (err) {
-      console.error("Add event failed", err);
+      console.error("addEvent failed", err);
     }
   }
 
   useEffect(() => {
     fetchTrends();
-    const id = setInterval(fetchTrends, 2000);
-    return () => clearInterval(id);
+    const interval = setInterval(fetchTrends, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
-    <main className="min-h-screen px-6 py-20">
+    <main className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-pink-50 px-6 py-20">
       <div className="mx-auto max-w-3xl">
-        <h1 className="text-4xl font-bold text-center">🔥 Live Trending</h1>
+        <h1 className="text-4xl font-extrabold text-center text-slate-900">
+          🔥 Live Trending
+        </h1>
+        <p className="mt-3 text-center text-slate-600">
+          Trending events in the <b>last 60 seconds</b>
+        </p>
 
-        <div className="mt-10 flex gap-3">
+        <div className="mt-10 rounded-2xl bg-white p-6 shadow-xl flex gap-3">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addEvent()}
-            className="flex-1 border rounded-xl px-4 py-3"
-            placeholder="Type event (apple)"
+            placeholder="Type event (e.g. apple)"
+            className="flex-1 rounded-xl border px-4 py-3"
           />
           <button
             onClick={addEvent}
-            className="px-6 py-3 rounded-xl bg-orange-500 text-white"
+            className="rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 px-6 py-3 font-semibold text-white"
           >
             Add
           </button>
         </div>
 
-        {loading && <p className="mt-6 text-center">Loading…</p>}
+        <div className="mt-10">
+          {loading && <p className="text-center text-slate-400">Updating…</p>}
+          {!loading && trends.length === 0 && (
+            <p className="text-center text-slate-400">
+              No events yet. Start typing!
+            </p>
+          )}
 
-        <ul className="mt-6 space-y-3">
-          {trends.map((t, i) => (
-            <li key={t.item} className="flex justify-between bg-white p-4 rounded-xl shadow">
-              <span>#{i + 1} {t.item}</span>
-              <span>{t.count}</span>
-            </li>
-          ))}
-        </ul>
+          <ul className="mt-6 space-y-4">
+            {trends.map((t, i) => (
+              <li
+                key={t.item}
+                className="flex justify-between rounded-xl bg-white p-5 shadow"
+              >
+                <span className="font-semibold">
+                  #{i + 1} {t.item}
+                </span>
+                <span className="font-bold text-orange-600">{t.count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </main>
   );

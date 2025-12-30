@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export default function SearchPage() {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<string[]>([]);
@@ -14,10 +16,20 @@ export default function SearchPage() {
       return;
     }
 
-    fetch(`http://localhost:4000/search?q=${q}`)
+    const controller = new AbortController();
+
+    fetch(
+      `${API_URL}/search?q=${encodeURIComponent(q)}`,
+      { signal: controller.signal }
+    )
       .then(res => res.json())
-      .then(data => setResults(data))
+      .then(data => {
+        // backend returns array directly
+        setResults(Array.isArray(data) ? data : []);
+      })
       .catch(() => setResults([]));
+
+    return () => controller.abort();
   }, [q]);
 
   return (
@@ -29,7 +41,7 @@ export default function SearchPage() {
         style={{
           background: "var(--card-bg)",
           boxShadow: "0 0 60px rgba(99,102,241,0.25)",
-          border: "1px solid var(--border-glow)"
+          border: "1px solid var(--border-glow)",
         }}
       >
         <h1 className="text-3xl font-bold mb-1">Autocomplete Search</h1>
@@ -64,7 +76,7 @@ export default function SearchPage() {
                 <li
                   key={r}
                   onMouseEnter={() => setActive(i)}
-                  className={`px-4 py-3 cursor-pointer ${
+                  className={`px-4 py-3 cursor-pointer transition ${
                     i === active
                       ? "bg-indigo-600/20"
                       : "hover:bg-indigo-600/10"

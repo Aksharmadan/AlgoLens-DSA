@@ -8,7 +8,8 @@ type Trend = {
 };
 
 // ✅ MUST start with NEXT_PUBLIC_
-const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+const API_URL = "https://algolens-dsa.onrender.com";
+
 
 export default function TrendingPage() {
   const [input, setInput] = useState("");

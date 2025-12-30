@@ -1,35 +1,22 @@
 const express = require("express");
 const router = express.Router();
 
-const WINDOW_MS = 60 * 1000;
-const events = [];
-
-function cleanup(now) {
-  while (events.length && events[0].time < now - WINDOW_MS) {
-    events.shift();
-  }
-}
+const WINDOW = 60 * 1000;
+let events = [];
 
 router.post("/add", (req, res) => {
   const { item } = req.body;
+  if (!item) return res.status(400).json({ error: "item required" });
 
-  if (!item || typeof item !== "string") {
-    return res.status(400).json({ error: "Item required" });
-  }
-
-  events.push({
-    item: item.toLowerCase(),
-    time: Date.now(),
-  });
-
-  res.json({ message: "Event added" });
+  events.push({ item, time: Date.now() });
+  res.json({ success: true });
 });
 
 router.get("/top", (req, res) => {
-  const k = Number(req.query.k || 5);
+  const k = Number(req.query.k) || 5;
   const now = Date.now();
 
-  cleanup(now);
+  events = events.filter(e => now - e.time <= WINDOW);
 
   const freq = {};
   for (const e of events) {
@@ -44,7 +31,7 @@ router.get("/top", (req, res) => {
   res.json({
     window: "last 60 seconds",
     totalEvents: events.length,
-    trends,
+    trends
   });
 });
 
